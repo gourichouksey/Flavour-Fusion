@@ -48,4 +48,4 @@
 ### Steps to push code
 - git add .
 - git commit -m "YOUR_MSG"
-- git push origin maingit
+- git push origin main
