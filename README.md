@@ -38,8 +38,14 @@
 
 ### Pending Frontend Tasks
 - Make all components dynamic, including:
-  - Directions
-  - States
-  - Dishes
-  - Data displayed upon clicking a dish name
+  - Directions/regions // dynamic
+  - States             // dynamic
+  - Dishes             // static
+  - Data displayed upon clicking a dish name // display missing
 - Improve UI/UX for better user interaction.
+
+
+### Steps to push code
+- git add .
+- git commit -m "YOUR_MSG"
+- git push origin main
