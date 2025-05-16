@@ -1,6 +1,6 @@
 # Flavour Fusion – Final Version with About, Recipes, Favorites, Search
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import messagebox, ttk, Scrollbar, VERTICAL, Canvas
 from PIL import Image, ImageTk
 import json
 import urllib.request
@@ -57,34 +57,55 @@ def load_image_from_url(url, size):
         return ImageTk.PhotoImage(im)
     except Exception:
         return None
-
+    
 def show_recipe_details(recipe):
     detail_win = tk.Toplevel(root)
     detail_win.title(recipe['name'])
     center(detail_win, 700, 650)
     detail_win.configure(bg="#fffaf0")
 
-    tk.Label(detail_win, text=recipe['name'], font=("Georgia", 20, "bold"), bg="#fffaf0", fg="#8B0000").pack(pady=10)
-    tk.Label(detail_win, text=f"{recipe['state']} ({recipe['region']})", font=("Verdana", 12), bg="#fffaf0", fg="#006400").pack(pady=2)
-    tk.Label(detail_win, text=recipe.get('basic_info', ""), font=("Verdana", 10, "italic"), bg="#fffaf0", fg="#555").pack(pady=2)
+    # Create a canvas and a vertical scrollbar for scrolling
+    canvas = tk.Canvas(detail_win, bg="#fffaf0", highlightthickness=0)
+    scrollbar = ttk.Scrollbar(detail_win, orient="vertical", command=canvas.yview)
+    scrollable_frame = tk.Frame(canvas, bg="#fffaf0")
+
+    # Configure the canvas
+    scrollable_frame.bind(
+        "<Configure>",
+        lambda e: canvas.configure(
+            scrollregion=canvas.bbox("all")
+        )
+    )
+
+    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    # Pack the widgets
+    canvas.pack(side="left", fill="both", expand=True)
+    scrollbar.pack(side="right", fill="y")
+
+    # Now, add your widgets to scrollable_frame instead of detail_win
+    tk.Label(scrollable_frame, text=recipe['name'], font=("Georgia", 20, "bold"), bg="#fffaf0", fg="#8B0000").pack(pady=10)
+    tk.Label(scrollable_frame, text=f"{recipe['state']} ({recipe['region']})", font=("Verdana", 12), bg="#fffaf0", fg="#006400").pack(pady=2)
+    tk.Label(scrollable_frame, text=recipe.get('basic_info', ""), font=("Verdana", 10, "italic"), bg="#fffaf0", fg="#555").pack(pady=2)
 
     img = None
     if recipe.get('images'):
         img = load_image_from_url(recipe['images'][0], (200, 200))
     if img:
-        tk.Label(detail_win, image=img, bg="#fffaf0").pack()
+        tk.Label(scrollable_frame, image=img, bg="#fffaf0").pack()
         detail_win.image = img
 
     def create_section(title, content):
-        tk.Label(detail_win, text=title, font=("Georgia", 14, "bold"), bg="#fffaf0", fg="#006400").pack(pady=(8, 0))
+        tk.Label(scrollable_frame, text=title, font=("Georgia", 14, "bold"), bg="#fffaf0", fg="#006400").pack(pady=(8, 0))
         if isinstance(content, list):
             for item in content:
-                tk.Label(detail_win, text=f"- {item}", font=("Verdana", 10), bg="#fffaf0", anchor="w", justify="left", wraplength=650).pack(anchor="w", padx=20)
+                tk.Label(scrollable_frame, text=f"- {item}", font=("Verdana", 10), bg="#fffaf0", anchor="w", justify="left", wraplength=650).pack(anchor="w", padx=20)
         elif isinstance(content, dict):
             for k, v in content.items():
-                tk.Label(detail_win, text=f"{k}: {v}", font=("Verdana", 10), bg="#fffaf0", anchor="w").pack(anchor="w", padx=20)
+                tk.Label(scrollable_frame, text=f"{k}: {v}", font=("Verdana", 10), bg="#fffaf0", anchor="w").pack(anchor="w", padx=20)
         else:
-            tk.Message(detail_win, text=content, width=650, font=("Verdana", 10), bg="#fffaf0").pack(anchor="w", padx=20)
+            tk.Message(scrollable_frame, text=content, width=650, font=("Verdana", 10), bg="#fffaf0").pack(anchor="w", padx=20)
 
     create_section("Ingredients", recipe.get('ingredients', []))
     create_section("Steps", recipe.get('steps', []))
@@ -92,7 +113,7 @@ def show_recipe_details(recipe):
     create_section("Health Benefits", recipe.get('health_benefits', []))
     create_section("Tags", ", ".join(recipe.get('tags', [])))
 
-    tk.Button(detail_win, text="Add to Favorites", bg="#ffd700", command=lambda: add_to_favorites(recipe)).pack(pady=10)
+    tk.Button(scrollable_frame, text="Add to Favorites", bg="#ffd700", command=lambda: add_to_favorites(recipe)).pack(pady=10)
 
 def add_to_favorites(recipe):
     if recipe not in favorites:
@@ -199,7 +220,8 @@ def show_about():
         "Explore traditional recipes across states, understand ingredients,\n"
         "and discover the story behind every dish.\n\n"
         "Made with ❤️ by food enthusiasts and developers.\n"
-        "Enjoy the taste of India, one dish at a time!"
+        "Enjoy the taste of India, one dish at a time!.\n"
+        "From - Gouri Chouksey (Backend)"
     )
     tk.Message(about_win, text=about_text, width=450, font=("Verdana", 11), bg="#fffaf0").pack(pady=20)
 
