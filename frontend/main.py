@@ -250,7 +250,10 @@ def show_about():
         "and discover the story behind every dish.\n\n"
         "Made with ❤️ by food enthusiasts and developers.\n"
         "Enjoy the taste of India, one dish at a time!\n"
-        "From - Gouri Chouksey (Backend)"
+        "                                      \n"
+        "                                      \n"
+        "                                      \n"
+                                                 "Made By - Team Ruthless\n"
     )
     tk.Message(about_win, text=about_text, width=450, font=("Verdana", 11), bg="#fffaf0").pack(pady=20)
 
