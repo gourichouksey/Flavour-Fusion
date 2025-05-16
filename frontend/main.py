@@ -167,12 +167,53 @@ def show_all_recipes():
     center(recipe_win, 800, 600)
     recipe_win.configure(bg="#f5fffa")
 
-    tk.Label(recipe_win, text="All Recipes", font=("Georgia", 18, "bold"), bg="#f5fffa", fg="#2e8b57").pack(pady=10)
-    for recipe in all_dishes:
-        btn = tk.Button(recipe_win, text=f"{recipe['name']} ({recipe['state']})", font=("Verdana", 12), width=45,
-                        bg="#dcdcdc", command=lambda r=recipe: show_recipe_details(r))
-        btn.pack(pady=5)
+    container = tk.Frame(recipe_win, bg="#f5fffa")
+    container.pack(expand=True, fill='both')
 
+    tk.Label(container, text="All Recipes", font=("Georgia", 18, "bold"), bg="#f5fffa", fg="#2e8b57").grid(row=0, column=0, pady=10, columnspan=1)
+
+    btn_frame = tk.Frame(container, bg="#f5fffa")
+    btn_frame.grid(row=1, column=0, sticky="nsew")
+
+    # Add top and bottom stretchable rows for vertical centering
+    btn_frame.grid_rowconfigure(0, weight=1)
+    btn_frame.grid_rowconfigure(len(all_dishes)+1, weight=1)
+    btn_frame.grid_columnconfigure(0, weight=1)
+
+    for i, recipe in enumerate(all_dishes):
+        btn = tk.Button(btn_frame, text=f"{recipe['name']} ({recipe['state']})", font=("Verdana", 12), width=45,
+                        bg="#dcdcdc", command=lambda r=recipe: show_recipe_details(r))
+        btn.grid(row=i+1, column=0, pady=5, sticky='ew')
+
+    container.grid_rowconfigure(1, weight=1)
+    container.grid_columnconfigure(0, weight=1)
+
+def show_recipes_by_state(state_name):
+    state_dishes = [r for r in all_dishes if r['state'] == state_name]
+    recipe_win = tk.Toplevel(root)
+    recipe_win.title(f"Recipes – {state_name}")
+    center(recipe_win, 800, 600)
+    recipe_win.configure(bg="#f5fffa")
+
+    container = tk.Frame(recipe_win, bg="#f5fffa")
+    container.pack(expand=True, fill='both')
+
+    tk.Label(container, text=f"{state_name} Recipes", font=("Georgia", 18, "bold"), bg="#f5fffa", fg="#2e8b57").grid(row=0, column=0, pady=10, columnspan=1)
+
+    btn_frame = tk.Frame(container, bg="#f5fffa")
+    btn_frame.grid(row=1, column=0, sticky="nsew")
+
+    btn_frame.grid_rowconfigure(0, weight=1)
+    btn_frame.grid_rowconfigure(len(state_dishes)+1, weight=1)
+    btn_frame.grid_columnconfigure(0, weight=1)
+
+    for i, recipe in enumerate(state_dishes):
+        btn = tk.Button(btn_frame, text=recipe['name'], font=("Verdana", 12), width=40,
+                        bg="#dcdcdc", command=lambda r=recipe: show_recipe_details(r))
+        btn.grid(row=i+1, column=0, pady=5, sticky='ew')
+
+    container.grid_rowconfigure(1, weight=1)
+    container.grid_columnconfigure(0, weight=1)
 def show_favorites():
     fav_win = tk.Toplevel(root)
     fav_win.title("Favorites")
