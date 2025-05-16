@@ -1,4 +1,4 @@
-# Flavour Fusion – Final Version with About, Recipes, Favorites, Search
+# Flavour Fusion – Updated Version with Requested Changes
 import tkinter as tk
 from tkinter import messagebox, ttk, Scrollbar, VERTICAL, Canvas
 from PIL import Image, ImageTk
@@ -57,7 +57,40 @@ def load_image_from_url(url, size):
         return ImageTk.PhotoImage(im)
     except Exception:
         return None
-    
+
+def add_to_favorites(recipe):
+    if recipe not in favorites:
+        favorites.append(recipe)
+        messagebox.showinfo("Added", f"{recipe['name']} added to favorites!")
+    else:
+        messagebox.showinfo("Already Added", f"{recipe['name']} is already in favorites.")
+
+def remove_from_favorites(recipe):
+    if recipe in favorites:
+        favorites.remove(recipe)
+        messagebox.showinfo("Removed", f"{recipe['name']} removed from favorites!")
+    else:
+        messagebox.showinfo("Not Found", f"{recipe['name']} is not in favorites.")
+
+def show_favorites():
+    fav_win = tk.Toplevel(root)
+    fav_win.title("Favorites")
+    center(fav_win, 600, 500)
+    fav_win.configure(bg="#fffacd")
+
+    tk.Label(fav_win, text="Your Favorite Recipes", font=("Georgia", 16, "bold"), bg="#fffacd", fg="#8b0000").pack(pady=10)
+
+    if not favorites:
+        tk.Label(fav_win, text="No favorites yet!", font=("Verdana", 12), bg="#fffacd").pack(pady=20)
+    else:
+        for recipe in favorites:
+            frame = tk.Frame(fav_win, bg="#fffacd")
+            frame.pack(pady=5)
+
+            tk.Label(frame, text=recipe['name'], font=("Verdana", 11), bg="#fffacd").pack(side="left", padx=10)
+            tk.Button(frame, text="Unfavorite", font=("Verdana", 11), bg="#f08080",
+                      command=lambda r=recipe: remove_from_favorites(r)).pack(side="right")
+
 def show_recipe_details(recipe):
     detail_win = tk.Toplevel(root)
     detail_win.title(recipe['name'])
@@ -69,7 +102,6 @@ def show_recipe_details(recipe):
     scrollbar = ttk.Scrollbar(detail_win, orient="vertical", command=canvas.yview)
     scrollable_frame = tk.Frame(canvas, bg="#fffaf0")
 
-    # Configure the canvas
     scrollable_frame.bind(
         "<Configure>",
         lambda e: canvas.configure(
@@ -80,11 +112,9 @@ def show_recipe_details(recipe):
     canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
     canvas.configure(yscrollcommand=scrollbar.set)
 
-    # Pack the widgets
     canvas.pack(side="left", fill="both", expand=True)
     scrollbar.pack(side="right", fill="y")
 
-    # Now, add your widgets to scrollable_frame instead of detail_win
     tk.Label(scrollable_frame, text=recipe['name'], font=("Georgia", 20, "bold"), bg="#fffaf0", fg="#8B0000").pack(pady=10)
     tk.Label(scrollable_frame, text=f"{recipe['state']} ({recipe['region']})", font=("Verdana", 12), bg="#fffaf0", fg="#006400").pack(pady=2)
     tk.Label(scrollable_frame, text=recipe.get('basic_info', ""), font=("Verdana", 10, "italic"), bg="#fffaf0", fg="#555").pack(pady=2)
@@ -115,120 +145,44 @@ def show_recipe_details(recipe):
 
     tk.Button(scrollable_frame, text="Add to Favorites", bg="#ffd700", command=lambda: add_to_favorites(recipe)).pack(pady=10)
 
-def add_to_favorites(recipe):
-    if recipe not in favorites:
-        favorites.append(recipe)
-        messagebox.showinfo("Added", f"{recipe['name']} added to favorites!")
-    else:
-        messagebox.showinfo("Already Added", f"{recipe['name']} is already in favorites.")
-
-def show_recipes_by_state(state_name):
-    state_dishes = [r for r in all_dishes if r['state'] == state_name]
-    recipe_win = tk.Toplevel(root)
-    recipe_win.title(f"Recipes – {state_name}")
-    center(recipe_win, 800, 600)
-    recipe_win.configure(bg="#f5fffa")
-
-    tk.Label(recipe_win, text=f"{state_name} Recipes", font=("Georgia", 18, "bold"), bg="#f5fffa", fg="#2e8b57").pack(pady=10)
-    for recipe in state_dishes:
-        btn = tk.Button(recipe_win, text=recipe['name'], font=("Verdana", 12), width=40,
-                        bg="#dcdcdc", command=lambda r=recipe: show_recipe_details(r))
-        btn.pack(pady=5)
-
-def show_states_by_region(region):
-    states = sorted(set(r['state'] for r in all_dishes if r['region'] == region))
-    states_win = tk.Toplevel(root)
-    states_win.title(f"States – {region}")
-    center(states_win, 400, 400)
-    states_win.configure(bg="#e0f7fa")
-
-    tk.Label(states_win, text=f"States in {region} region", font=("Georgia", 15, "bold"), bg="#e0f7fa", fg="#006064").pack(pady=10)
-    for state in states:
-        btn = tk.Button(states_win, text=state, font=("Verdana", 12), width=25,
-                        bg="#b2ebf2", command=lambda s=state: show_recipes_by_state(s))
-        btn.pack(pady=5)
-
-def show_regions():
-    regions = sorted(set(r['region'] for r in all_dishes))
-    regions_win = tk.Toplevel(root)
-    regions_win.title("Browse by Region")
-    center(regions_win, 350, 350)
-    regions_win.configure(bg="#ffe0b2")
-
-    tk.Label(regions_win, text="Choose a Region", font=("Georgia", 15, "bold"), bg="#ffe0b2", fg="#c66900").pack(pady=10)
-    for region in regions:
-        btn = tk.Button(regions_win, text=region, font=("Verdana", 12), width=20,
-                        bg="#ffd54f", command=lambda r=region: show_states_by_region(r))
-        btn.pack(pady=5)
-
 def show_all_recipes():
     recipe_win = tk.Toplevel(root)
     recipe_win.title("All Recipes")
     center(recipe_win, 800, 600)
     recipe_win.configure(bg="#f5fffa")
 
-    container = tk.Frame(recipe_win, bg="#f5fffa")
-    container.pack(expand=True, fill='both')
+    canvas = tk.Canvas(recipe_win, bg="#f5fffa", highlightthickness=0)
+    scrollbar = ttk.Scrollbar(recipe_win, orient=VERTICAL, command=canvas.yview)
+    scrollable_frame = tk.Frame(canvas, bg="#f5fffa")
 
-    tk.Label(container, text="All Recipes", font=("Georgia", 18, "bold"), bg="#f5fffa", fg="#2e8b57").grid(row=0, column=0, pady=10, columnspan=1)
+    scrollable_frame.bind(
+        "<Configure>",
+        lambda e: canvas.configure(
+            scrollregion=canvas.bbox("all")
+        )
+    )
 
-    btn_frame = tk.Frame(container, bg="#f5fffa")
-    btn_frame.grid(row=1, column=0, sticky="nsew")
+    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
 
-    # Add top and bottom stretchable rows for vertical centering
-    btn_frame.grid_rowconfigure(0, weight=1)
-    btn_frame.grid_rowconfigure(len(all_dishes)+1, weight=1)
-    btn_frame.grid_columnconfigure(0, weight=1)
+    canvas.pack(side="left", fill="both", expand=True)
+    scrollbar.pack(side="right", fill="y")
 
-    for i, recipe in enumerate(all_dishes):
-        btn = tk.Button(btn_frame, text=f"{recipe['name']} ({recipe['state']})", font=("Verdana", 12), width=45,
-                        bg="#dcdcdc", command=lambda r=recipe: show_recipe_details(r))
-        btn.grid(row=i+1, column=0, pady=5, sticky='ew')
+    tk.Label(scrollable_frame, text="All Recipes", font=("Georgia", 18, "bold"), bg="#f5fffa", fg="#2e8b57").pack(pady=10)
 
-    container.grid_rowconfigure(1, weight=1)
-    container.grid_columnconfigure(0, weight=1)
+    for recipe in all_dishes:
+        frame = tk.Frame(scrollable_frame, bg="#f5fffa")
+        frame.pack(pady=5)
 
-def show_recipes_by_state(state_name):
-    state_dishes = [r for r in all_dishes if r['state'] == state_name]
-    recipe_win = tk.Toplevel(root)
-    recipe_win.title(f"Recipes – {state_name}")
-    center(recipe_win, 800, 600)
-    recipe_win.configure(bg="#f5fffa")
+        img = None
+        if recipe.get('images'):
+            img = load_image_from_url(recipe['images'][0], (100, 100))
+        if img:
+            tk.Label(frame, image=img, bg="#f5fffa").pack(side="left", padx=10)
+            frame.image = img
 
-    container = tk.Frame(recipe_win, bg="#f5fffa")
-    container.pack(expand=True, fill='both')
-
-    tk.Label(container, text=f"{state_name} Recipes", font=("Georgia", 18, "bold"), bg="#f5fffa", fg="#2e8b57").grid(row=0, column=0, pady=10, columnspan=1)
-
-    btn_frame = tk.Frame(container, bg="#f5fffa")
-    btn_frame.grid(row=1, column=0, sticky="nsew")
-
-    btn_frame.grid_rowconfigure(0, weight=1)
-    btn_frame.grid_rowconfigure(len(state_dishes)+1, weight=1)
-    btn_frame.grid_columnconfigure(0, weight=1)
-
-    for i, recipe in enumerate(state_dishes):
-        btn = tk.Button(btn_frame, text=recipe['name'], font=("Verdana", 12), width=40,
-                        bg="#dcdcdc", command=lambda r=recipe: show_recipe_details(r))
-        btn.grid(row=i+1, column=0, pady=5, sticky='ew')
-
-    container.grid_rowconfigure(1, weight=1)
-    container.grid_columnconfigure(0, weight=1)
-def show_favorites():
-    fav_win = tk.Toplevel(root)
-    fav_win.title("Favorites")
-    center(fav_win, 600, 500)
-    fav_win.configure(bg="#fffacd")
-
-    tk.Label(fav_win, text="Your Favorite Recipes", font=("Georgia", 16, "bold"), bg="#fffacd", fg="#8b0000").pack(pady=10)
-
-    if not favorites:
-        tk.Label(fav_win, text="No favorites yet!", font=("Verdana", 12), bg="#fffacd").pack(pady=20)
-    else:
-        for recipe in favorites:
-            btn = tk.Button(fav_win, text=recipe['name'], font=("Verdana", 11), bg="#f0e68c",
-                            command=lambda r=recipe: show_recipe_details(r))
-            btn.pack(pady=5)
+        tk.Button(frame, text=recipe['name'], font=("Verdana", 12), width=40,
+                  bg="#dcdcdc", command=lambda r=recipe: show_recipe_details(r)).pack(side="right", padx=10)
 
 def search_recipe():
     query = search_entry.get().lower()
@@ -239,15 +193,31 @@ def search_recipe():
     center(result_win, 600, 400)
     result_win.configure(bg="#e6e6fa")
 
-    tk.Label(result_win, text=f"Results for '{query}':", font=("Georgia", 14, "bold"), bg="#e6e6fa").pack(pady=10)
+    canvas = tk.Canvas(result_win, bg="#e6e6fa", highlightthickness=0)
+    scrollbar = ttk.Scrollbar(result_win, orient=VERTICAL, command=canvas.yview)
+    scrollable_frame = tk.Frame(canvas, bg="#e6e6fa")
+
+    scrollable_frame.bind(
+        "<Configure>",
+        lambda e: canvas.configure(
+            scrollregion=canvas.bbox("all")
+        )
+    )
+
+    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    canvas.pack(side="left", fill="both", expand=True)
+    scrollbar.pack(side="right", fill="y")
+
+    tk.Label(scrollable_frame, text=f"Results for '{query}':", font=("Georgia", 14, "bold"), bg="#e6e6fa").pack(pady=10)
 
     if not results:
-        tk.Label(result_win, text="No matches found.", font=("Verdana", 11), bg="#e6e6fa").pack()
+        tk.Label(scrollable_frame, text="No matches found.", font=("Verdana", 11), bg="#e6e6fa").pack()
     else:
         for recipe in results:
-            btn = tk.Button(result_win, text=f"{recipe['name']} ({recipe['state']})", font=("Verdana", 11), bg="#dda0dd",
-                            command=lambda r=recipe: show_recipe_details(r))
-            btn.pack(pady=5)
+            tk.Button(scrollable_frame, text=f"{recipe['name']} ({recipe['state']})", font=("Verdana", 11), bg="#dda0dd",
+                      command=lambda r=recipe: show_recipe_details(r)).pack(pady=5)
 
 def show_about():
     about_win = tk.Toplevel(root)
@@ -278,7 +248,7 @@ search_entry = tk.Entry(root, font=("Verdana", 12), width=30)
 search_entry.pack(pady=5)
 tk.Button(root, text="🔍 Search", font=("Verdana", 11), bg="#e0ffff", command=search_recipe).pack(pady=5)
 
-tk.Button(root, text="🍲 Browse by Region", font=("Verdana", 12), width=25, bg="#ffe082", command=show_regions).pack(pady=10)
+tk.Button(root, text="🍲 Browse by Region", font=("Verdana", 12), width=25, bg="#ffe082", command=show_all_recipes).pack(pady=10)
 tk.Button(root, text="🍛 All Recipes", font=("Verdana", 12), width=25, bg="#98fb98", command=show_all_recipes).pack(pady=10)
 tk.Button(root, text="⭐ Favorites", font=("Verdana", 12), width=25, bg="#ffdab9", command=show_favorites).pack(pady=10)
 tk.Button(root, text="ℹ️ About Us", font=("Verdana", 12), width=25, bg="#add8e6", command=show_about).pack(pady=10)
