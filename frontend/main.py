@@ -1,23 +1,46 @@
 # Flavour Fusion – Final Version with About, Recipes, Favorites, Search
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 from PIL import Image, ImageTk
 import json
 import urllib.request
 import io
+import os
 
-# Load recipes
+# Load recipes (adapted for nested structure)
 def load_recipes():
-    with open("database_recipes.json", "r") as file:
+    with open(os.path.join(os.path.dirname(__file__), "../backend/database_recipes.json"), "r", encoding="utf-8") as file:
         return json.load(file)
 
 data = load_recipes()
 favorites = []
 
-# Constants
-MAIN_W, MAIN_H = 800, 600
+# Helper to flatten dishes with state info
+def get_all_dishes():
+    all_dishes = []
+    for state_name, state_data in data.items():
+        for i, dish in enumerate(state_data.get("Dishes", [])):
+            dish_flat = {
+                "id": f"{state_name}_{i}",
+                "state": state_name,
+                "region": state_data.get("Direction", ""),
+                "name": dish.get("Name", ""),
+                "ingredients": dish.get("Ingredients", []),
+                "steps": dish.get("Steps", []),
+                "nutritional_value": dish.get("Nutrition", {}),
+                "health_benefits": dish.get("HealthBenefits", []),
+                "tags": dish.get("Tags", []),
+                "images": dish.get("Images", []),
+                "basic_info": dish.get("BasicInfo", "")
+            }
+            all_dishes.append(dish_flat)
+    return all_dishes
 
-# Centering window
+all_dishes = get_all_dishes()
+
+# Constants
+MAIN_W, MAIN_H = 900, 650
+
 def center(win, w, h):
     sw = win.winfo_screenwidth()
     sh = win.winfo_screenheight()
@@ -25,7 +48,6 @@ def center(win, w, h):
     y = int((sh - h) / 2)
     win.geometry(f"{w}x{h}+{x}+{y}")
 
-# Load image from URL
 def load_image_from_url(url, size):
     try:
         with urllib.request.urlopen(url) as u:
@@ -33,40 +55,45 @@ def load_image_from_url(url, size):
         im = Image.open(io.BytesIO(raw))
         im = im.resize(size, Image.LANCZOS)
         return ImageTk.PhotoImage(im)
-    except:
+    except Exception:
         return None
 
-# Recipe Detail Page
 def show_recipe_details(recipe):
     detail_win = tk.Toplevel(root)
     detail_win.title(recipe['name'])
-    center(detail_win, 700, 600)
+    center(detail_win, 700, 650)
     detail_win.configure(bg="#fffaf0")
 
     tk.Label(detail_win, text=recipe['name'], font=("Georgia", 20, "bold"), bg="#fffaf0", fg="#8B0000").pack(pady=10)
+    tk.Label(detail_win, text=f"{recipe['state']} ({recipe['region']})", font=("Verdana", 12), bg="#fffaf0", fg="#006400").pack(pady=2)
+    tk.Label(detail_win, text=recipe.get('basic_info', ""), font=("Verdana", 10, "italic"), bg="#fffaf0", fg="#555").pack(pady=2)
 
-    img = load_image_from_url(recipe.get('image', ''), (200, 200))
+    img = None
+    if recipe.get('images'):
+        img = load_image_from_url(recipe['images'][0], (200, 200))
     if img:
         tk.Label(detail_win, image=img, bg="#fffaf0").pack()
         detail_win.image = img
 
     def create_section(title, content):
-        tk.Label(detail_win, text=title, font=("Georgia", 14, "bold"), bg="#fffaf0", fg="#006400").pack(pady=(15, 0))
+        tk.Label(detail_win, text=title, font=("Georgia", 14, "bold"), bg="#fffaf0", fg="#006400").pack(pady=(8, 0))
         if isinstance(content, list):
             for item in content:
-                tk.Label(detail_win, text=f"- {item}", font=("Verdana", 10), bg="#fffaf0").pack(anchor="w", padx=20)
+                tk.Label(detail_win, text=f"- {item}", font=("Verdana", 10), bg="#fffaf0", anchor="w", justify="left", wraplength=650).pack(anchor="w", padx=20)
+        elif isinstance(content, dict):
+            for k, v in content.items():
+                tk.Label(detail_win, text=f"{k}: {v}", font=("Verdana", 10), bg="#fffaf0", anchor="w").pack(anchor="w", padx=20)
         else:
             tk.Message(detail_win, text=content, width=650, font=("Verdana", 10), bg="#fffaf0").pack(anchor="w", padx=20)
 
     create_section("Ingredients", recipe.get('ingredients', []))
     create_section("Steps", recipe.get('steps', []))
-    create_section("Nutritional Value", recipe.get('nutritional_value', ''))
-    create_section("Health Benefits", recipe.get('health_benefits', ''))
+    create_section("Nutritional Value", recipe.get('nutritional_value', {}))
+    create_section("Health Benefits", recipe.get('health_benefits', []))
     create_section("Tags", ", ".join(recipe.get('tags', [])))
 
     tk.Button(detail_win, text="Add to Favorites", bg="#ffd700", command=lambda: add_to_favorites(recipe)).pack(pady=10)
 
-# Add to favorites
 def add_to_favorites(recipe):
     if recipe not in favorites:
         favorites.append(recipe)
@@ -74,21 +101,57 @@ def add_to_favorites(recipe):
     else:
         messagebox.showinfo("Already Added", f"{recipe['name']} is already in favorites.")
 
-# Recipe List View
-def show_recipes():
+def show_recipes_by_state(state_name):
+    state_dishes = [r for r in all_dishes if r['state'] == state_name]
+    recipe_win = tk.Toplevel(root)
+    recipe_win.title(f"Recipes – {state_name}")
+    center(recipe_win, 800, 600)
+    recipe_win.configure(bg="#f5fffa")
+
+    tk.Label(recipe_win, text=f"{state_name} Recipes", font=("Georgia", 18, "bold"), bg="#f5fffa", fg="#2e8b57").pack(pady=10)
+    for recipe in state_dishes:
+        btn = tk.Button(recipe_win, text=recipe['name'], font=("Verdana", 12), width=40,
+                        bg="#dcdcdc", command=lambda r=recipe: show_recipe_details(r))
+        btn.pack(pady=5)
+
+def show_states_by_region(region):
+    states = sorted(set(r['state'] for r in all_dishes if r['region'] == region))
+    states_win = tk.Toplevel(root)
+    states_win.title(f"States – {region}")
+    center(states_win, 400, 400)
+    states_win.configure(bg="#e0f7fa")
+
+    tk.Label(states_win, text=f"States in {region} region", font=("Georgia", 15, "bold"), bg="#e0f7fa", fg="#006064").pack(pady=10)
+    for state in states:
+        btn = tk.Button(states_win, text=state, font=("Verdana", 12), width=25,
+                        bg="#b2ebf2", command=lambda s=state: show_recipes_by_state(s))
+        btn.pack(pady=5)
+
+def show_regions():
+    regions = sorted(set(r['region'] for r in all_dishes))
+    regions_win = tk.Toplevel(root)
+    regions_win.title("Browse by Region")
+    center(regions_win, 350, 350)
+    regions_win.configure(bg="#ffe0b2")
+
+    tk.Label(regions_win, text="Choose a Region", font=("Georgia", 15, "bold"), bg="#ffe0b2", fg="#c66900").pack(pady=10)
+    for region in regions:
+        btn = tk.Button(regions_win, text=region, font=("Verdana", 12), width=20,
+                        bg="#ffd54f", command=lambda r=region: show_states_by_region(r))
+        btn.pack(pady=5)
+
+def show_all_recipes():
     recipe_win = tk.Toplevel(root)
     recipe_win.title("All Recipes")
     center(recipe_win, 800, 600)
     recipe_win.configure(bg="#f5fffa")
 
-    tk.Label(recipe_win, text="Recipes by State and Region", font=("Georgia", 18, "bold"), bg="#f5fffa", fg="#2e8b57").pack(pady=10)
-
-    for recipe in data:
-        btn = tk.Button(recipe_win, text=recipe['name'], font=("Verdana", 12), width=40,
+    tk.Label(recipe_win, text="All Recipes", font=("Georgia", 18, "bold"), bg="#f5fffa", fg="#2e8b57").pack(pady=10)
+    for recipe in all_dishes:
+        btn = tk.Button(recipe_win, text=f"{recipe['name']} ({recipe['state']})", font=("Verdana", 12), width=45,
                         bg="#dcdcdc", command=lambda r=recipe: show_recipe_details(r))
         btn.pack(pady=5)
 
-# Show Favorites
 def show_favorites():
     fav_win = tk.Toplevel(root)
     fav_win.title("Favorites")
@@ -105,10 +168,9 @@ def show_favorites():
                             command=lambda r=recipe: show_recipe_details(r))
             btn.pack(pady=5)
 
-# Search Recipes
 def search_recipe():
     query = search_entry.get().lower()
-    results = [r for r in data if query in r['name'].lower()]
+    results = [r for r in all_dishes if query in r['name'].lower() or query in r['state'].lower() or query in r['region'].lower()]
 
     result_win = tk.Toplevel(root)
     result_win.title(f"Search: {query}")
@@ -121,11 +183,10 @@ def search_recipe():
         tk.Label(result_win, text="No matches found.", font=("Verdana", 11), bg="#e6e6fa").pack()
     else:
         for recipe in results:
-            btn = tk.Button(result_win, text=recipe['name'], font=("Verdana", 11), bg="#dda0dd",
+            btn = tk.Button(result_win, text=f"{recipe['name']} ({recipe['state']})", font=("Verdana", 11), bg="#dda0dd",
                             command=lambda r=recipe: show_recipe_details(r))
             btn.pack(pady=5)
 
-# About Page
 def show_about():
     about_win = tk.Toplevel(root)
     about_win.title("About Us – Flavour Fusion")
@@ -148,14 +209,14 @@ root.title("Flavour Fusion – Home")
 center(root, MAIN_W, MAIN_H)
 root.configure(bg="#ffe4e1")
 
-# Title and Buttons
 tk.Label(root, text="Flavour Fusion", font=("Georgia", 20, "bold"), bg="#ffe4e1", fg="#8B0000").pack(pady=20)
 
 search_entry = tk.Entry(root, font=("Verdana", 12), width=30)
 search_entry.pack(pady=5)
 tk.Button(root, text="🔍 Search", font=("Verdana", 11), bg="#e0ffff", command=search_recipe).pack(pady=5)
 
-tk.Button(root, text="🍲 Browse Recipes", font=("Verdana", 12), width=25, bg="#98fb98", command=show_recipes).pack(pady=10)
+tk.Button(root, text="🍲 Browse by Region", font=("Verdana", 12), width=25, bg="#ffe082", command=show_regions).pack(pady=10)
+tk.Button(root, text="🍛 All Recipes", font=("Verdana", 12), width=25, bg="#98fb98", command=show_all_recipes).pack(pady=10)
 tk.Button(root, text="⭐ Favorites", font=("Verdana", 12), width=25, bg="#ffdab9", command=show_favorites).pack(pady=10)
 tk.Button(root, text="ℹ️ About Us", font=("Verdana", 12), width=25, bg="#add8e6", command=show_about).pack(pady=10)
 tk.Button(root, text="❌ Exit", font=("Verdana", 12), width=25, bg="#ff7f7f", command=root.quit).pack(pady=20)
