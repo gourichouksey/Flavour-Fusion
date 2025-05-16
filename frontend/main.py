@@ -8,7 +8,7 @@ import io
 
 # Load recipes
 def load_recipes():
-    with open("updated_recipes.json", "r") as file:
+    with open("database_recipes.json", "r") as file:
         return json.load(file)
 
 data = load_recipes()
