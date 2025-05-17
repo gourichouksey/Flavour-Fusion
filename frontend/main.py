@@ -174,8 +174,28 @@ def show_all_recipes():
     recipe_win.configure(bg="#f5fffa")
 
     tk.Label(recipe_win, text="All Recipes", font=("Georgia", 18, "bold"), bg="#f5fffa", fg="#2e8b57").pack(pady=10)
+
+    # Create a canvas and a vertical scrollbar for scrolling
+    canvas = tk.Canvas(recipe_win, bg="#f5fffa", highlightthickness=0)
+    scrollbar = ttk.Scrollbar(recipe_win, orient="vertical", command=canvas.yview)
+    scrollable_frame = tk.Frame(canvas, bg="#f5fffa")
+
+    # Bind the scrollable frame to the canvas
+    scrollable_frame.bind(
+        "<Configure>",
+        lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+    )
+
+    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    # Pack the canvas and scrollbar
+    canvas.pack(side="left", fill="both", expand=True)
+    scrollbar.pack(side="right", fill="y")
+
+    # Add recipe buttons to the scrollable frame
     for recipe in all_dishes:
-        btn = tk.Button(recipe_win, text=f"{recipe['name']} ({recipe['state']})", font=("Verdana", 12), width=45,
+        btn = tk.Button(scrollable_frame, text=f"{recipe['name']} ({recipe['state']})", font=("Verdana", 12), width=45,
                         bg="#dcdcdc", command=lambda r=recipe: show_recipe_details(r))
         btn.pack(pady=5)
 
